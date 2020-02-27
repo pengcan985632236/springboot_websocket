@@ -276,5 +276,35 @@ public class WebsocketController {
     public String handleException(Throwable exception) {
         return exception.getMessage();
     }
+
+    /**
+     * 记录心情
+     */
+
+    @RequestMapping("/recordingMood")
+    public String recordingMood(Model model) {
+
+        //定义随机时间戳名称
+        String name = "游客:";
+        //String  datename = new SimpleDateFormat("yyyyMMddHHmmsss").format(new Date());
+//        String  datename = new SimpleDateFormat("msss").format(new Date());
+//        name = name + datename;
+        name = name + (userlabelnumber++);
+
+
+
+        //websock链接地址+游客名-->  项目中请定义在配置文件 -->或直接读取服务器，ip 端口
+        // 读取服务器,ip 端口可看：https://blog.csdn.net/qq_41463655/article/details/92002474
+//        String path="ws://192.168.100.7:8080/websocket/";
+//        String path="ws://localhost:8080/websocket/";
+//        String path="ws://192.168.1.2:8080/chattingInTime/";
+//        String path="ws://192.168..1.114:8080/websocket/";
+        String path="ws://129.28.179.230:8080/websocket/";
+
+
+        model.addAttribute("path",path);
+        model.addAttribute("username",name);
+        return "recordingMood";
+    }
 }
 
