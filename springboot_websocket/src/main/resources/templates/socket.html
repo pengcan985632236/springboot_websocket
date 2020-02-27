@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../frame/layui/css/layui.css">
+    <link rel="stylesheet" href="../frame/static/css/style.css">
+    <link rel="icon" href="../frame/static/image/code.png">
+    <title>websocket</title>
+    <script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery/jquery-1.4.min.js"></script>
+    <script src="http://cdn.bootcss.com/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdn.bootcss.com/sockjs-client/1.1.4/sockjs.min.js"></script>
+</head>
+<css>
+
+</css>
+<body>
+<script>
+    function notifyMe(notifyString) {
+        // 先检查浏览器是否支持
+        if (!("Notification" in window)) {
+            alert("This browser does not support desktop notification");
+        }
+
+        // 检查用户是否同意接受通知
+        else if (Notification.permission === "granted") {
+            // If it's okay let's create a notification
+            var notification = new Notification(notifyString);
+        }
+
+        // 否则我们需要向用户获取权限
+        else if (Notification.permission !== 'denied') {
+            Notification.requestPermission(function(permission) {
+                // 如果用户同意，就可以向他们发送通知
+                if (permission === "granted") {
+                    var notification = new Notification(notifyString);
+                }
+            });
+        }
+
+
+        // 最后，如果执行到这里，说明用户已经拒绝对相关通知进行授权
+        // 出于尊重，我们不应该再打扰他们了
+    }
+    // notifyMe("欢迎来到及聊");
+</script>
+
+
+<!--   socket url -->
+<input  type="hidden" th:value="${path}" id="path"  style="display: none" />
+<!--  用户名 -->
+<input  type="hidden" th:value="${username}" id="username"  style="display: none" />
+
+
+<!-- ===============================================================================================================  -->
+<br>
+
+<!--<input  type="hidden" value="所有人" id="onLineUser" text="所有人" style="display: none" />-->
+
+
+<!-- ===============================================================================================================  -->
+<!--    overflow-y :auto;overflow :auto;  宽高自适应滚动条-->
+<div style="width:80%;overflow:auto;background-color: papayawhip;float:left;overflow-y :auto;">
+    <li style="text-align: center;color: red;">不用注册，随到随聊，聊完就走，不保留任何数据</li>
+    <li style="text-align: center;color: red;margin-top: 10px;"><span style="font-size: 20px;">方便使用注意：</span>用浏览器打开，添加到手机主屏幕，点击即可开始聊天</li>
+
+    <span style="height: 5px;"></span>
+    <li style="text-align: center;color: deeppink;font-size: 20px;margin-top: 10px;margin-bottom: 10px;">群聊信息</li>
+    <div style="width:80%;overflow:auto;background-color: papayawhip;float:left;overflow-y :auto;height: 200px;">
+        <!--    <div id="msg" style="overflow:hidden;width:480px;"></div>-->
+
+
+        <div id="msg" ></div>
+        <div id="msg_end" style="height:0px; overflow:hidden"></div>
+    </div>
+</div>
+
+
+<!--<span id = "miqx" style="width:80%;height:300px; background-color: papayawhip;float:left;overflow-y :auto;overflow :auto;">-->
+<!--<li style="text-align: center">群聊信息</li>-->
+
+<!--</span>-->
+
+
+<span id = "miax" style="width:20%;height:304px; background-color: #F2F2F2;float:left;overflow-y :auto;overflow :auto;">
+    <li style="text-align: center">在线列表</li>
+</span>
+
+<textarea id="text" onkeydown="enter_btn(event.keyCode)"; placeholder="请输入内容-发送消息[Ctrl+回车键]" rows="3%" cols="60%"></textarea>
+
+
+<input onclick="send()" type="button" value="发送" style="width: 100px;height: 80px;font-size: 20px;color: deeppink;">
+<td><span style="font-size: 20px;color: deeppink;">请选择消息接收人：</span></td>
+<select id="onLineUser" size="1" style="width: 100px;height:80px;font-size: 20px;color: deeppink;">
+    <option  value="所有人" >所有人</option>
+</select>
+
+
+<!--<div  id = "mizx"  style="width:100%;height:300px;background-color: #FFEEE8;float:left;overflow-y :auto;overflow :auto;">-->
+<!--    <li style="text-align: center">私聊信息</li>-->
+<!--    &lt;!&ndash;    <li style="text-align: right">靠右</li>-->
+<!--        <li style="text-align: left" >靠左</li>&ndash;&gt;-->
+<!--</div>-->
+<div style="width:100%;overflow:auto;height: 300px;background-color: papayawhip;float:left;overflow-y :auto;">
+    <!--    <div id="msg" style="overflow:hidden;width:480px;"></div>-->
+
+    <li style="text-align: center;color: red;margin-top: 10px;">不用注册，随到随聊，聊完就走，不保留任何数据</li>
+    <li style="text-align: center;color: red;margin-top: 10px;"><span style="font-size: 20px;">方便使用注意：</span>用浏览器打开，添加到手机主屏幕，点击即可开始聊天</li>
+    <span style="height: 5px;"></span>
+    <li style="text-align: center;color: deeppink;font-size: 20px;margin-top: 10px;margin-bottom: 10px;">私聊信息</li>
+    <div id="msg1" ></div>
+    <div id="msg_end1" style="height:0px; overflow:hidden"></div>
+</div>
+<br>
+<br>
+
+<!-- ===============================================================================  -->
+
+</body>
+<script type="text/javascript">
+    function uaername(name){
+        alert(name)
+    }
+    // var miqx = $("#miqx");  //群聊
+
+    var miax = $("#miax");   //在线列表
+    // var mizx = $("#mizx");  //私聊
+    var onLineUser = $("#onLineUser");    //发送人select选择框
+
+    var webSocket;
+    var commWebSocket;http:
+        if ("WebSocket" in window){
+            //192.168.100.7:8080/
+            webSocket = new WebSocket(document.getElementById('path').value +document.getElementById('username').value);
+            //连通之后的回调事件
+            webSocket.onopen = function()
+            {
+                // miqx.html(miqx.html()+" <li style='text-align: center'>系统消息:[登陆成功]</li>")
+                // msg.innerHTML+="hello world<br>";
+                // msg.innerHTML+=" <li style='text-align: center'>系统消息:[登陆成功]欢迎来到<b>及聊</b></span></li><br>";
+                msg.innerHTML+=" <li style='text-align: center'>系统消息:欢迎来到<b style='color: red;'>及聊</b></span></li><br>";
+
+                // notifyMe("系统消息:[登陆成功]")
+                msg_end.scrollIntoView();
+
+
+            };
+
+            //接收后台服务端的消息
+            webSocket.onmessage = function (evt)
+            {
+                var received_msg = evt.data;           //接收到的数据
+                var obj = JSON.parse(received_msg);    //json数据
+                var messageType = obj.messageType;      //数据类型（1上线/2下线/3在线名单/4发信息)
+                var onlineName = obj.username;         //用户名
+                var number = obj.number;               //在线人数
+
+                //上线通知+在线列表刷新
+                if(obj.messageType==1){
+                    if((onlineName != $("#username").val())){ //展示除不等于自己的所有用户
+                        // miqx.html(miqx.html()+" <li style='text-align: center'>系统消息:["+ onlineName+"]上线了"+"</li>");
+                        onLineUser.html(onLineUser.html()+"<option  value='"+ onlineName +"'>"+ onlineName +"</option>");
+                        // msg.innerHTML+="hello world<br>";
+                        msg.innerHTML+=" 系统消息:["+ onlineName+"]上线了"+"</li><br>";
+                        // notifyMe("系统消息:["+ onlineName+"]上线了")
+                        msg_end.scrollIntoView();
+
+                    }
+                    var onlineName = obj.onlineUsers;  //所有在线用户
+                    miax.html("<li style='text-align: center'>在线用户["+ 100+onlineName.length  +"]</li>");
+                    for(var i=0;i<onlineName.length;i++){
+                        if((onlineName[i] != $("#username").val())){ //展示除不等于自己的所有用户
+                            miax.html(miax.html()+"<li style='text-align: left'>"+ onlineName[i] +"</li>" );
+                        }
+                    }
+                    //miax.html(miax.html()+" <li style='text-align: center'>"+ onlineName +"</li>");
+                }
+                //下线通知+在线列表刷新
+                else if(obj.messageType==2){
+                    if((onlineName != $("#username").val())){ //展示除不等于自己的所有用户
+                        // miqx.html(miqx.html()+" <li style='text-align: center'>系统消息:["+ onlineName+"]下线了"+"</li>");
+                        // msg.innerHTML+="hello world<br>";
+                        msg.innerHTML+=" <li style='text-align: center'>系统消息:["+ onlineName+"]下线了"+"</li><br>";
+                        // notifyMe(" 系统消息:["+ onlineName+"]下线了")
+                        msg_end.scrollIntoView();
+
+                    }
+                    var onlineName = obj.onlineUsers;  //剩余所有在线用户
+                    miax.html("<li style='text-align: center'>在线用户["+ onlineName.length  +"]</li>");
+                    onLineUser.html("<option  value='所有人'>所有人</option>");
+                    for(var i=0;i<onlineName.length;i++){
+                        if((onlineName[i] != $("#username").val())){ //展示除不等于自己的所有用户
+                            miax.html(miax.html()+"<li style='text-align: left'>"+ onlineName[i] +"</li>" );
+                            onLineUser.html(onLineUser.html()+"<option  value='"+ onlineName[i] +"'>"+ onlineName[i] +"</option>");
+                        }
+                    }
+                }
+                //在线列表
+                else if(obj.messageType==3){
+                    var onlineName = obj.onlineUsers; //所有在线用户
+                    miax.html("<li style='text-align: center'>在线用户["+ 100+onlineName.length +"]</li>");
+                    onLineUser.html("<option  value='所有人'>所有人</option>");
+                    for(var i=0;i<onlineName.length;i++){
+                        if(onlineName[i] != $("#username").val()){ //展示除不等于自己的所有用户
+                            miax.html(miax.html()+ " <li style='text-align: left'>"+ onlineName[i] +"</li>" );
+                            onLineUser.html(onLineUser.html()+"<option  value='"+ onlineName[i] +"'>"+ onlineName[i] +"</option>");
+                        }
+                    }
+                }
+                //信息接收
+                else{
+                    var time2 = new Date();
+                    var date = time2.getHours()+":"+time2.getMinutes()+":"+ time2.getSeconds();  //时间
+                    if(obj.fromusername != $("#username").val() ){    //自己不接自己的消息
+                        if(obj.tousername=="所有人"){
+                            //发给所有人
+                            // miqx.html(miqx.html()+" <li style='text-align: left'>["+ obj.fromusername+"]说:-"+obj.textMessage +"</li>");
+                            // msg.innerHTML+="hello world<br>";
+                            msg.innerHTML+=" <li style='text-align: left'>["+ obj.fromusername+"]说:-"+obj.textMessage +"</li><br>";
+                            msg_end.scrollIntoView();
+
+                        }else {
+                            //发给指定人
+                            // mizx.html(mizx.html()+" <li style='text-align: left'>["+ obj.fromusername+"]说:-"+obj.textMessage+"</li>");
+                            msg1.innerHTML+=" <li style='text-align: left'>["+ obj.fromusername+"]说:-"+obj.textMessage+"</li><br>";
+                            msg_end1.scrollIntoView();
+
+
+                        }
+                    }
+                    //setMessageInnerHTML(obj.fromusername+"对"+obj.tousername+"说："+obj.textMessage);
+                }
+            };
+
+            //连接关闭的回调事件
+            webSocket.onclose = function()
+            {
+                console.log("连接已关闭...");
+                setMessageInnerHTML("连接已经关闭....");
+            };
+        }
+        else{
+            // 浏览器不支持 WebSocket
+            alert("您的浏览器不支持 WebSocket!");
+        }
+    //将消息显示在网页上
+    function setMessageInnerHTML(innerHTML) {
+        document.getElementById('message').innerHTML += innerHTML + '<br/>';
+    }
+
+    function closeWebSocket() {
+        //直接关闭websocket的连接
+        webSocket.close();
+    }
+
+    //信息发送+ 页面显示发送信息
+    $(document).keyup(function(event){
+        //浏览器适应
+        if(event.ctrlKey && event.which == 13 || event.which == 10) {
+            send();
+        } else if (event.shiftKey && event.which==13 || event.which == 10) {
+            send();
+        }
+    });
+
+    //信息发送+ 页面显示发送信息
+    function send() {
+        var usernameX = $("#username").val()         //发送数据人
+        var usernameY = $("#onLineUser").val();      //接收数据人
+        var message = $("#text").val();               //发送的数据
+        if(message == "" || message == null || message == undefined){ // "",null,undefined
+            // console.log("为空");
+            alert("请输入要发送的内容")
+            // $("#text").html("请输入要发送的内容")
+            return;
+        }
+        console.log("message="+message)
+        if(usernameY=="所有人"){
+            usernameY = "All";
+            /*  <li style="text-align: center">群聊信息</li>
+             <li style="text-align: right">靠右</li>
+             <li style="text-align: left" >靠左</li>*/
+            // miqx.html(miqx.html()+" <li style='text-align: right'>"+ message+" -- ["+usernameX +"]</li>");
+            // msg.innerHTML+="hello world<br>";
+            msg.innerHTML+=" <li style='text-align: right'>"+ message+" -- ["+usernameX +"]</li><br>";
+            msg_end.scrollIntoView();
+
+        }
+        else{
+            // mizx.html(mizx.html()+" <li style='text-align: right'>"+ "你对-["+usernameY+"]说:-"+message+"</li>");
+            msg1.innerHTML+=" <li style='text-align: right'>"+ "你对-["+usernameY+"]说:-"+message+"</li><br>";
+            msg_end1.scrollIntoView();
+
+
+        }
+        var message = {
+            "message":message,
+            "username":usernameX,
+            "to":usernameY
+        };
+        //发送数据
+        webSocket.send(JSON.stringify(message));
+        $("#text").val("");
+    }
+    function enter_btn(a) {
+        var message = $("#text").val();
+        if(message==13){
+            console.log("111"+message)
+            //return;
+
+        }else{
+            if(a==13){
+                // alert('你点击了回车键')
+                send();
+            }
+        }
+        console.log("111"+message)
+        console.log("message->"+message)
+        // if(message == "" || message == null || message == undefined){ // "",null,undefined
+        //     // console.log("为空");
+        //     alert("请输入要发送的内容")
+        //     // $("#text").html("请输入要发送的内容")
+        //     return;
+        // }else {
+            // alert('你点击了回车键1')
+
+
+        // }
+
+
+
+    }
+
+    layui.use(['form', 'layedit', 'laydate'], function () {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+
+        //监听指定开关
+        form.on('switch(switchTest)', function (data) {
+            layer.msg('你以' + (this.checked ? '上线' : '下线'), {
+                offset: '6px'
+            });
+            //layer.tips('温馨提示：请注意开关状态的文字可以随意定义，而不仅仅是ON|OFF', data.othis)
+        });
+    });
+</script>
+</html>
+
+
